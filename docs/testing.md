@@ -201,3 +201,139 @@ Expected:
 - No unexpected resets.
 - No frozen display.
 - No persistent loss of communication.
+
+
+## Dynamic mood engine regression tests
+
+### Test 20 - Default mood
+
+Power on the device and send get_mood.
+
+Expected:
+
+- Mood ID is idle.
+- Default pig expression is visible.
+- Firmware version is 0.3.0.
+
+### Test 21 - Valid mood updates
+
+Send valid definitions covering all supported
+eye, mouth and accessory values.
+
+Expected:
+
+- Each valid definition is acknowledged.
+- The rendered appearance matches its definition.
+- Background and caption update correctly.
+
+### Test 22 - Mood round trip
+
+Send a valid set_mood command.
+
+Send get_mood afterward.
+
+Expected:
+
+The returned definition matches the accepted
+definition, with hexadecimal colors normalized
+to uppercase.
+
+### Test 23 - Validation
+
+Test:
+
+- Missing required fields
+- Unsupported expressions
+- Invalid colors
+- Invalid identifiers
+- Incorrect boolean types
+- Oversized messages
+- Unsupported characters
+- Unknown additional fields
+- Incorrect mood object types
+
+Expected:
+
+- Structured invalid_mood error.
+- Invalid field is identified.
+- Previous mood remains unchanged.
+
+### Test 24 - Physical boop
+
+Select a non-default mood.
+
+Physically tap the touchscreen.
+
+Expected:
+
+- Temporary happy reaction.
+- Physical boop event.
+- Selected mood restored after expiration.
+
+### Test 25 - Remote boop
+
+Select a non-default mood.
+
+Send a remote boop command.
+
+Expected:
+
+- Temporary happy reaction.
+- Command acknowledgment.
+- No physical-touch event.
+- Selected mood restored after expiration.
+
+### Test 26 - Mood update during reaction
+
+Trigger a boop and send a new mood before
+the reaction expires.
+
+Expected:
+
+The newly selected mood is displayed when
+the reaction expires.
+
+### Test 27 - Dark backgrounds
+
+Send a mood with a dark background color.
+
+Expected:
+
+White foreground text and facial details
+remain visible.
+
+### Test 28 - Message boundaries
+
+Test an empty message, a 24-character message
+and a 25-character message.
+
+Expected:
+
+- Empty message accepted.
+- 24-character message accepted and fits.
+- 25-character message rejected.
+
+### Test 29 - Power cycle
+
+Select a non-default mood.
+
+Disconnect and reconnect USB power.
+
+Expected:
+
+The default idle mood is restored.
+
+Persistence is not implemented yet.
+
+### Test 30 - Mixed interaction stability
+
+Alternate between valid mood updates, invalid
+updates, physical touches, remote boops and
+get_mood commands for five minutes.
+
+Expected:
+
+- No unexpected restarts.
+- No frozen display.
+- No corrupted application state.
+- Existing USB commands remain responsive.

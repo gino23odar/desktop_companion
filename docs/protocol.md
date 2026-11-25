@@ -162,3 +162,62 @@ for authenticating remote backend requests.
 
 The firmware must independently validate all
 commands and supported content.
+
+
+## set_mood
+
+Introduced in firmware version 0.3.0.
+
+Validates and activates a complete mood definition.
+
+Request:
+
+    {"type":"set_mood","request_id":1,"mood":{"id":"sleepy","background":"#DCD5F3","eyes":"sleepy","mouth":"none","blush":false,"accessory":"zzz","message":"Buenas noches"}}
+
+Successful response:
+
+    {"type":"ack","command":"set_mood","request_id":1}
+
+An acknowledgment indicates that the mood was
+accepted as the active mood.
+
+If a temporary reaction is running, the new
+mood is displayed when that reaction expires.
+
+Invalid response:
+
+    {"type":"error","code":"invalid_mood","field":"eyes","request_id":1}
+
+An invalid update does not replace the existing
+active mood.
+
+See moods.md for the complete mood schema.
+
+## get_mood
+
+Returns the current active mood.
+
+Request:
+
+    {"type":"get_mood","request_id":2}
+
+Response:
+
+    {"type":"mood","mood":{"id":"sleepy","background":"#DCD5F3","eyes":"sleepy","mouth":"none","blush":false,"accessory":"zzz","message":"Buenas noches"},"request_id":2}
+
+This command returns the base mood rather than
+temporary visual reactions.
+
+## Additional error codes
+
+| Code | Description |
+|------|-------------|
+| invalid_mood | Invalid or unsupported mood definition |
+
+Mood validation errors contain a field property
+identifying the invalid field.
+
+The special field values mood and unknown_field
+indicate an invalid root value or unsupported
+additional fields, respectively.
+
