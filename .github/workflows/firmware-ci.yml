@@ -60,4 +60,4 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --warnings all \
-            firmware/Svinka
+            firmware/buddy
