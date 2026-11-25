@@ -59,6 +59,22 @@ namespace {
         sendResponse(response, requestId);
     }
 
+    void sendMoodError(
+        const char* field,
+        RequestId requestId
+    ) {
+
+        JsonDocument response;
+
+        response["type"] = "error";
+
+        response["code"] = "invalid_mood";
+
+        response["field"] = field;
+
+        sendResponse(response, requestId);
+    }
+
 
     void sendHello(RequestId requestId) {
 
@@ -108,6 +124,26 @@ namespace {
 
         response["type"] = "ack";
         response["command"] = command;
+
+        sendResponse(response, requestId);
+    }
+
+    void sendMood(
+        const Mood& mood,
+        RequestId requestId
+    ) {
+
+        JsonDocument response;
+
+        response["type"] = "mood";
+
+        JsonObject moodObject =
+            response["mood"].to<JsonObject>();
+
+        MoodModel::writeJson(
+            moodObject,
+            mood
+        );
 
         sendResponse(response, requestId);
     }
@@ -205,7 +241,7 @@ namespace {
     void processCommand(
         const char* data,
         size_t length,
-        BoopHandler onBoop
+        const Handlers& handlers
     ) {
 
         JsonDocument request;
@@ -266,6 +302,7 @@ namespace {
             return;
         }
 
+        
         if (type == "hello") {
 
             sendHello(requestId);
@@ -280,7 +317,7 @@ namespace {
 
         } else if (type == "boop") {
 
-            if (onBoop == nullptr) {
+            if (handlers.onBoop == nullptr) {
 
                 sendError(
                     "handler_unavailable",
@@ -290,9 +327,63 @@ namespace {
                 return;
             }
 
-            onBoop();
+            handlers.onBoop();
 
             sendAck("boop", requestId);
+
+        } else if (type == "set_mood") {
+
+            if (handlers.onSetMood == nullptr) {
+
+                sendError(
+                    "handler_unavailable",
+                    requestId
+                );
+
+                return;
+            }
+
+            Mood candidate = {};
+
+            JsonVariantConst moodSource =
+                request["mood"];
+
+            const char* invalidField =
+                MoodModel::parse(
+                    moodSource,
+                    candidate
+                );
+
+            if (invalidField != nullptr) {
+
+                sendMoodError(
+                    invalidField,
+                    requestId
+                );
+
+                return;
+            }
+
+            handlers.onSetMood(candidate);
+
+            sendAck("set_mood", requestId);
+
+        } else if (type == "get_mood") {
+
+            if (handlers.onGetMood == nullptr) {
+
+                sendError(
+                    "handler_unavailable",
+                    requestId
+                );
+
+                return;
+            }
+
+            sendMood(
+                handlers.onGetMood(),
+                requestId
+            );
 
         } else {
 
@@ -310,7 +401,7 @@ namespace {
 
     void processByte(
         char character,
-        BoopHandler onBoop
+        const Handlers& handlers
     ) {
 
         if (character == '\n') {
@@ -336,7 +427,7 @@ namespace {
                     processCommand(
                         inputBuffer,
                         inputLength,
-                        onBoop
+                        handlers
                     );
                 }
             }
@@ -378,7 +469,7 @@ namespace {
 // Public interface
 // --------------------------------------------------
 
-void poll(BoopHandler onBoop) {
+void poll(const Handlers& handlers) {
 
     size_t processed = 0;
 
@@ -395,7 +486,7 @@ void poll(BoopHandler onBoop) {
 
         processByte(
             static_cast<char>(incoming),
-            onBoop
+            handlers
         );
 
         ++processed;

@@ -3,24 +3,40 @@
 
 #include <Arduino.h>
 
+#include "Mood.h"
+
 namespace SerialProtocol {
 
     constexpr uint8_t PROTOCOL_VERSION = 1;
 
     constexpr char DEVICE_NAME[] = "svinka";
 
-    constexpr char FIRMWARE_VERSION[] = "0.2.0";
+    constexpr char FIRMWARE_VERSION[] = "0.3.0";
 
-    // Callback invoked when a remote boop is requested
+
     using BoopHandler = void (*)();
 
-    // Process pending incoming serial data
-    void poll(BoopHandler onBoop);
+    using SetMoodHandler =
+        void (*)(const Mood& mood);
 
-    // Report that the firmware has started
+    using GetMoodHandler =
+        const Mood& (*)();
+
+
+    struct Handlers {
+
+        BoopHandler onBoop;
+
+        SetMoodHandler onSetMood;
+
+        GetMoodHandler onGetMood;
+    };
+
+
+    void poll(const Handlers& handlers);
+
     void emitReady();
 
-    // Report a physical touchscreen interaction
     void emitBoopEvent();
-
 }
+
