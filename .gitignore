@@ -1,0 +1,33 @@
+# Build artifacts
+build/
+dist/
+*.bin
+*.elf
+*.map
+*.hex
+
+# IDE configuration
+.vscode/
+.idea/
+
+# Python (future companion and backend)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local databases
+*.sqlite3
+*.sqlite3-*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
