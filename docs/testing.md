@@ -87,3 +87,117 @@ Expected:
 - No unexpected restarts.
 - No frozen touchscreen.
 - No corrupted graphics.
+
+
+## USB protocol regression tests
+
+### Test 10 - Device identification
+
+Send:
+
+    {"type":"hello"}
+
+Expected:
+
+A hello response containing device name,
+firmware version and protocol version.
+
+### Test 11 - Heartbeat
+
+Send:
+
+    {"type":"ping","request_id":42}
+
+Expected:
+
+    {"type":"pong","request_id":42}
+
+### Test 12 - Remote interaction
+
+Send:
+
+    {"type":"boop"}
+
+Expected:
+
+- Boop animation activates.
+- An acknowledgment is returned.
+- The default face returns after one second.
+- No physical-touch event is emitted.
+
+### Test 13 - Physical interaction
+
+Tap the touchscreen.
+
+Expected:
+
+    {"type":"event","event":"boop","source":"touch"}
+
+### Test 14 - Command validation
+
+Send missing, malformed and unsupported commands.
+
+Expected:
+
+- An appropriate structured error response.
+- No unexpected display changes.
+- No firmware crashes.
+
+### Test 15 - Message size limit
+
+Send a line containing more than 511 bytes.
+
+Expected:
+
+    {"type":"error","code":"message_too_large"}
+
+### Test 16 - Error recovery
+
+After sending an oversized or malformed message,
+send a valid ping command.
+
+Expected:
+
+    {"type":"pong"}
+
+### Test 17 - Incomplete message handling
+
+Set Serial Monitor to No line ending.
+
+Send:
+
+    {"type":
+
+Verify that the device remains responsive to touch.
+
+Switch Serial Monitor back to Newline and send:
+
+    "ping"}
+
+Expected:
+
+    {"type":"pong"}
+
+### Test 18 - Trailing data rejection
+
+Send:
+
+    {"type":"boop"}garbage
+
+Expected:
+
+    {"type":"error","code":"invalid_json"}
+
+The boop animation must not activate.
+
+### Test 19 - Mixed interaction stability
+
+For five minutes, alternate between touchscreen
+interactions, valid commands and invalid commands.
+
+Expected:
+
+- No crashes.
+- No unexpected resets.
+- No frozen display.
+- No persistent loss of communication.

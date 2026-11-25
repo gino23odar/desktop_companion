@@ -6,6 +6,7 @@
 #include <XPT2046_Touchscreen.h>
 
 #include "HardwareConfig.h"
+#include "SerialProtocol.h"
 
 // Hardware instances
 Adafruit_ILI9341 tft(
@@ -205,7 +206,6 @@ void startBoop() {
 
     boopStartedAt = millis();
 
-    Serial.println("BOOP!");
 }
 
 
@@ -216,6 +216,7 @@ void updateTouch() {
     // Trigger only when a new touch begins
     if (isTouched && !wasTouched) {
         startBoop();
+        SerialProtocol::emitBoopEvent();
     }
 
     wasTouched = isTouched;
@@ -250,14 +251,13 @@ void setup() {
 
     drawSvinka(false);
 
-    Serial.println("SVINKA v0.1.0");
-    Serial.println("Display initialized.");
-    Serial.println("Touch initialized.");
-    Serial.println("Ready for boops!");
+    SerialProtocol::emitReady();
 }
 
 
 void loop() {
+
+    SerialProtocol::poll(startBoop);
 
     updateTouch();
 
