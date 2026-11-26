@@ -91,3 +91,46 @@ jobs:
       - name: Execute animation tests
         run: |
           ./build/tests/animation_tests
+  
+  storage-tests:
+    name: Test mood storage
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download ArduinoJson
+        run: |
+          mkdir -p build/deps
+
+          git clone \
+            --depth 1 \
+            --branch v7.4.3 \
+            https://github.com/bblanchon/ArduinoJson.git \
+            build/deps/ArduinoJson
+
+      - name: Compile storage tests
+        run: |
+          mkdir -p build/tests
+
+          g++ \
+            -std=c++17 \
+            -Wall \
+            -Wextra \
+            -Werror \
+            -pedantic \
+            -Ifirmware/buddy \
+            -isystem build/deps/ArduinoJson/src \
+            firmware/buddy/Mood.cpp \
+            firmware/buddy/MoodStorage.cpp \
+            tests/firmware/test_mood_storage.cpp \
+            -o build/tests/mood_storage_tests
+
+      - name: Execute storage tests
+        run: |
+          ./build/tests/mood_storage_tests
+
