@@ -2,7 +2,9 @@
 #pragma once
 
 #include <Adafruit_ILI9341.h>
+
 #include "Mood.h"
+#include "AnimationEngine.h"
 
 class CharacterRenderer {
 
@@ -12,7 +14,18 @@ public:
         Adafruit_ILI9341& display
     );
 
-    void render(const Mood& mood);
+    // Draw a complete mood.
+    void render(
+        const Mood& mood,
+        const AnimationFrame& frame
+    );
+
+    // Draw only the changed animation regions.
+    void renderAnimation(
+        const Mood& mood,
+        const AnimationFrame& previous,
+        const AnimationFrame& current
+    );
 
 private:
 
@@ -22,11 +35,15 @@ private:
 
     uint16_t contrastingColor(uint32_t rgb);
 
-    void drawEars(uint16_t color);
+    void drawEars(
+        uint16_t color,
+        int8_t offset
+    );
 
     void drawEyes(
         EyeStyle style,
-        uint16_t ink
+        uint16_t ink,
+        bool closed
     );
 
     void drawMouth(
@@ -40,7 +57,8 @@ private:
 
     void drawAccessory(
         Accessory accessory,
-        uint16_t ink
+        uint16_t ink,
+        int8_t offset
     );
 
     void drawCaption(

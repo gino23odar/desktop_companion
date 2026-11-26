@@ -51,8 +51,10 @@ uint16_t CharacterRenderer::contrastingColor(
 // Character rendering
 // --------------------------------------------------
 
+
 void CharacterRenderer::render(
-    const Mood& mood
+    const Mood& mood,
+    const AnimationFrame& frame
 ) {
 
     uint16_t background =
@@ -66,9 +68,16 @@ void CharacterRenderer::render(
 
     display.fillScreen(background);
 
-    drawEars(nose);
+    drawEars(
+        nose,
+        frame.earOffset
+    );
 
-    drawEyes(mood.eyes, ink);
+    drawEyes(
+        mood.eyes,
+        ink,
+        frame.eyesClosed
+    );
 
     if (mood.blush) {
         drawBlush();
@@ -80,7 +89,8 @@ void CharacterRenderer::render(
 
     drawAccessory(
         mood.accessory,
-        ink
+        ink,
+        frame.accessoryOffset
     );
 
     drawCaption(
@@ -90,20 +100,112 @@ void CharacterRenderer::render(
 }
 
 
-void CharacterRenderer::drawEars(
-    uint16_t color
+void CharacterRenderer::renderAnimation(
+    const Mood& mood,
+    const AnimationFrame& previous,
+    const AnimationFrame& current
 ) {
 
+    const uint16_t background =
+        toColor565(mood.background);
+
+    const uint16_t ink =
+        contrastingColor(mood.background);
+
+    const uint16_t nose =
+        display.color565(244, 145, 170);
+
+
+    // ----------------------------------------------
+    // Update ears only when their position changes
+    // ----------------------------------------------
+
+    if (previous.earOffset != current.earOffset) {
+
+        display.fillRect(
+            60, 45,
+            201, 46,
+            background
+        );
+
+        drawEars(
+            nose,
+            current.earOffset
+        );
+    }
+
+
+    // ----------------------------------------------
+    // Update eyes only when their state changes
+    // ----------------------------------------------
+
+    bool canBlink =
+        mood.eyes == EyeStyle::Open ||
+        mood.eyes == EyeStyle::Excited ||
+        mood.eyes == EyeStyle::Glasses;
+
+    if (
+        canBlink &&
+        previous.eyesClosed != current.eyesClosed
+    ) {
+
+        display.fillRect(
+            86, 94,
+            149, 42,
+            background
+        );
+
+        drawEyes(
+            mood.eyes,
+            ink,
+            current.eyesClosed
+        );
+    }
+
+
+    // ----------------------------------------------
+    // Update moving accessories
+    // ----------------------------------------------
+
+    if (
+        mood.accessory != Accessory::None &&
+        previous.accessoryOffset !=
+            current.accessoryOffset
+    ) {
+
+        display.fillRect(
+            261, 16,
+            59, 70,
+            background
+        );
+
+        drawAccessory(
+            mood.accessory,
+            ink,
+            current.accessoryOffset
+        );
+    }
+}
+
+
+
+void CharacterRenderer::drawEars(
+    uint16_t color,
+    int8_t offset
+) {
+
+    // Left ear
     display.fillTriangle(
         60, 90,
-        90, 45,
+        90 + offset, 45,
         120, 90,
         color
     );
 
+    // Right ear
     display.fillTriangle(
         200, 90,
-        230, 45,
+        230 - offset, 45,
         260, 90,
         color
     );
@@ -112,7 +214,8 @@ void CharacterRenderer::drawEars(
 
 void CharacterRenderer::drawEyes(
     EyeStyle style,
-    uint16_t ink
+    uint16_t ink,
+    bool closed
 ) {
 
     const int16_t positions[] = {
@@ -121,6 +224,30 @@ void CharacterRenderer::drawEyes(
     };
 
     for (int16_t x : positions) {
+
+        if (
+            closed &&
+            (
+                style == EyeStyle::Open ||
+                style == EyeStyle::Excited ||
+                style == EyeStyle::Glasses
+            )
+        ) {
+
+            display.fillRoundRect(
+                x - 11,
+                113,
+                23,
+                5,
+                2,
+                ink
+            );
+
+            // Glasses remain visible during blinking
+            if (style != EyeStyle::Glasses) {
+                continue;
+            }
+        }
 
         switch (style) {
 
@@ -201,9 +328,11 @@ void CharacterRenderer::drawEyes(
 
             case EyeStyle::Glasses:
 
-                display.fillCircle(
-                    x, 115, 9, ink
-                );
+                if (!closed) {
+                    display.fillCircle(
+                        x, 115, 9, ink
+                    );
+                }
 
                 display.drawRoundRect(
                     x - 23,
@@ -343,10 +472,14 @@ void CharacterRenderer::drawMouth(
 // Accessories
 // --------------------------------------------------
 
+
 void CharacterRenderer::drawAccessory(
     Accessory accessory,
-    uint16_t ink
+    uint16_t ink,
+    int8_t offset
 ) {
+
+    const int16_t dy = offset;
 
     switch (accessory) {
 
@@ -360,17 +493,19 @@ void CharacterRenderer::drawAccessory(
                 display.color565(223, 66, 107);
 
             display.fillCircle(
-                272, 42, 9, color
+                272, 42 + dy,
+                9, color
             );
 
             display.fillCircle(
-                288, 42, 9, color
+                288, 42 + dy,
+                9, color
             );
 
             display.fillTriangle(
-                263, 45,
-                297, 45,
-                280, 64,
+                263, 45 + dy,
+                297, 45 + dy,
+                280, 64 + dy,
                 color
             );
 
@@ -383,23 +518,23 @@ void CharacterRenderer::drawAccessory(
                 display.color565(231, 182, 58);
 
             display.fillTriangle(
-                280, 29,
-                268, 65,
-                297, 43,
+                280, 29 + dy,
+                268, 65 + dy,
+                297, 43 + dy,
                 color
             );
 
             display.fillTriangle(
-                280, 29,
-                292, 65,
-                263, 43,
+                280, 29 + dy,
+                292, 65 + dy,
+                263, 43 + dy,
                 color
             );
 
             display.fillTriangle(
-                263, 43,
-                297, 43,
-                280, 57,
+                263, 43 + dy,
+                297, 43 + dy,
+                280, 57 + dy,
                 color
             );
 
@@ -408,17 +543,25 @@ void CharacterRenderer::drawAccessory(
 
         case Accessory::Zzz:
 
+            display.setFont(nullptr);
+
             display.setTextSize(2);
 
             display.setTextColor(ink);
 
-            display.setCursor(263, 40);
+            display.setTextWrap(false);
+
+            display.setCursor(
+                263,
+                40 + dy
+            );
 
             display.print("Zzz");
 
             break;
     }
 }
+
 
 
 // --------------------------------------------------

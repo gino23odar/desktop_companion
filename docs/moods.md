@@ -23,9 +23,31 @@ the character renderer.
 | accessory | String | Decorative symbol |
 | message | String | Display caption |
 
-All seven fields are required.
+The original seven appearance fields are required.
 
-Unknown additional mood fields are rejected.
+An optional animation object may also be supplied.
+
+Unknown additional fields are rejected.
+
+## Animation configuration
+
+| Field | Type | Default |
+|-------|------|---------|
+| blink_ms | Integer | 4500 |
+| ear_wiggle | Boolean | true |
+| accessory_motion | Boolean | true |
+
+blink_ms must be zero or between 1000 and
+15000 milliseconds.
+
+Zero disables blinking.
+
+If animation is supplied, all three settings
+are required.
+
+If animation is omitted, default settings apply.
+
+See [Animation engine](animations.md) for details.
 
 ## Supported values
 

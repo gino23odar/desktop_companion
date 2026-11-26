@@ -6,6 +6,7 @@ namespace Hardware {
 
     // USB serial communication
     constexpr uint32_t SERIAL_BAUD = 115200;
+    constexpr size_t SERIAL_RX_BUFFER_SIZE = 1024;
     // Maximum incoming serial line length in bytes
     constexpr size_t SERIAL_BUFFER_SIZE = 512;
     // Maximum serial bytes processed per loop iteration

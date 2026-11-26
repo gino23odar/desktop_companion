@@ -61,3 +61,33 @@ jobs:
             --fqbn esp32:esp32:esp32 \
             --warnings all \
             firmware/buddy
+            
+  animation-tests:
+    name: Test animation engine
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile native C++ tests
+        run: |
+          mkdir -p build/tests
+
+          g++ \
+            -std=c++11 \
+            -Wall \
+            -Wextra \
+            -Werror \
+            -pedantic \
+            -Ifirmware/buddy \
+            firmware/buddy/AnimationEngine.cpp \
+            tests/firmware/test_animation_engine.cpp \
+            -o build/tests/animation_tests
+
+      - name: Execute animation tests
+        run: |
+          ./build/tests/animation_tests
