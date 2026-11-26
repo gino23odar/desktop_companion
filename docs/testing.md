@@ -337,3 +337,118 @@ Expected:
 - No frozen display.
 - No corrupted application state.
 - Existing USB commands remain responsive.
+
+
+## Animation engine regression tests
+
+### Test 31 - Native C++ tests
+
+Execute the animation test binary.
+
+Expected: All seven tests pass.
+
+### Test 32 - Default animations
+
+Power on the device.
+
+Expected:
+
+- Default pig character appears.
+- Automatic blinking occurs.
+- Periodic ear movement occurs.
+
+### Test 33 - Configurable blinking
+
+Test blink cycles of 1000, 4500 and 15000 ms.
+
+Expected:
+
+Blink timing follows the selected configuration.
+
+### Test 34 - Glasses blinking
+
+Select the glasses eye style.
+
+Expected:
+
+Pupils blink while the glasses remain visible.
+
+### Test 35 - Accessory movement
+
+Test hearts, stars and Zzz.
+
+Expected:
+
+Accessories move without leaving visual trails.
+
+### Test 36 - Ear movement
+
+Observe multiple ear movement cycles.
+
+Expected:
+
+Both ears move and return to their original
+positions without leaving visual artifacts.
+
+### Test 37 - Disabled animations
+
+Set blink_ms to zero and both flags to false.
+
+Expected:
+
+No automatic character movement.
+
+### Test 38 - Legacy mood compatibility
+
+Send a mood without an animation object.
+
+Expected:
+
+The mood is accepted with default settings.
+
+### Test 39 - Invalid animation settings
+
+Test incorrect values, missing fields and
+unsupported additional fields.
+
+Expected:
+
+An invalid_mood error is returned.
+
+The current active mood remains unchanged.
+
+### Test 40 - Physical boop during animation
+
+Tap the display while animations are running.
+
+Expected:
+
+The reaction appears, a touch event is emitted,
+and the original mood is restored afterward.
+
+### Test 41 - USB communication during animation
+
+Send commands while animations are active.
+
+Expected:
+
+Serial responses remain available.
+
+### Test 42 - Partial redraw quality
+
+Observe blinking, moving ears and accessories.
+
+Expected:
+
+No persistent trails or corruption in adjacent
+screen regions.
+
+### Test 43 - Stability
+
+Leave the device running for ten minutes while
+periodically sending commands and tapping it.
+
+Expected:
+
+No unexpected resets, freezes or corrupted
+application state.

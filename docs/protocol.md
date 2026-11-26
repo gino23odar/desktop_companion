@@ -5,7 +5,7 @@
 
 Protocol version: 1
 
-Introduced in firmware version 0.2.0.
+Introduced in firmware version 0.4.0.
 
 ## Transport
 
@@ -221,3 +221,23 @@ The special field values mood and unknown_field
 indicate an invalid root value or unsupported
 additional fields, respectively.
 
+## Animation configuration
+
+Firmware version 0.4.0 extends mood definitions
+with an optional animation object.
+
+Existing set_mood requests remain supported.
+
+get_mood responses now include the complete
+animation configuration.
+
+Invalid animation settings use the existing
+invalid_mood error format.
+
+Example:
+
+    {"type":"error","code":"invalid_mood","field":"animation.blink_ms"}
+
+The protocol version remains 1.
+
+See animations.md for the supported settings.
