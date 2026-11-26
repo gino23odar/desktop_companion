@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "AnimationEngine.h"
 
 enum class EyeStyle : uint8_t {
     Open,
@@ -40,6 +41,8 @@ struct Mood {
     Accessory accessory;
 
     char message[25];
+
+    AnimationSettings animation;
 };
 
 namespace MoodModel {

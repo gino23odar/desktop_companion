@@ -202,6 +202,56 @@ namespace {
         return false;
     }
 
+
+    const char* readAnimation(
+        JsonVariantConst source,
+        AnimationSettings& output
+    ) {
+
+        if (!source.is<JsonObjectConst>()) {
+            return "animation";
+        }
+
+        JsonVariantConst blink =
+            source["blink_ms"];
+
+        if (!blink.is<uint32_t>()) {
+            return "animation.blink_ms";
+        }
+
+        uint32_t blinkMs =
+            blink.as<uint32_t>();
+
+        if (
+            blinkMs != 0 &&
+            (
+                blinkMs < AnimationLimits::MIN_BLINK_MS ||
+                blinkMs > AnimationLimits::MAX_BLINK_MS
+            )
+        ) {
+            return "animation.blink_ms";
+        }
+
+        if (!source["ear_wiggle"].is<bool>()) {
+            return "animation.ear_wiggle";
+        }
+
+        if (!source["accessory_motion"].is<bool>()) {
+            return "animation.accessory_motion";
+        }
+
+        if (source.size() != 3) {
+            return "animation.unknown_field";
+        }
+
+        output = AnimationSettings{
+            blinkMs,
+            source["ear_wiggle"].as<bool>(),
+            source["accessory_motion"].as<bool>()
+        };
+
+        return nullptr;
+    }
 }
 
 
@@ -220,7 +270,8 @@ Mood defaultMood() {
         MouthStyle::None,
         false,
         Accessory::None,
-        "Hello Svinka!"
+        "Hello Svinka!",
+        defaultAnimationSettings()
     };
 }
 
@@ -252,6 +303,7 @@ const char* parse(
     // Do not modify the active mood until every
     // field has been validated successfully
     Mood candidate = {};
+    candidate.animation = defaultAnimationSettings();
 
     if (
         !readText(
@@ -319,10 +371,48 @@ const char* parse(
         return "message";
     }
 
-    // Reject additional fields for this schema version
-    if (source.size() != 7) {
+    
+    bool hasAnimation = false;
+
+    for (
+        JsonPairConst pair :
+        source.as<JsonObjectConst>()
+    ) {
+
+        JsonString key = pair.key();
+
+        if (
+            key.size() == 9 &&
+            memcmp(
+                key.c_str(),
+                "animation",
+                9
+            ) == 0
+        ) {
+            hasAnimation = true;
+            break;
+        }
+    }
+
+    if (hasAnimation) {
+
+        const char* error = readAnimation(
+            source["animation"],
+            candidate.animation
+        );
+
+        if (error != nullptr) {
+            return error;
+        }
+    }
+
+    const size_t expectedFields =
+        hasAnimation ? 8 : 7;
+
+    if (source.size() != expectedFields) {
         return "unknown_field";
     }
+
 
     // Commit only a completely valid mood
     output = candidate;
@@ -370,6 +460,14 @@ void writeJson(
         ];
 
     destination["message"] = mood.message;
+    
+    JsonObject animation = destination["animation"].to<JsonObject>();
+
+    animation["blink_ms"] = mood.animation.blinkMs;
+
+    animation["ear_wiggle"] = mood.animation.earWiggle;
+
+    animation["accessory_motion"] = mood.animation.accessoryMotion;
 }
 
 }
