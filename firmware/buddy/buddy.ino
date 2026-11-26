@@ -10,6 +10,7 @@
 #include "SerialProtocol.h"
 #include "Mood.h"
 #include "CharacterRenderer.h"
+#include "AnimationEngine.h"
 
 
 // --------------------------------------------------
@@ -28,6 +29,8 @@ XPT2046_Touchscreen touch(
 
 CharacterRenderer renderer(tft);
 
+AnimationEngine animationEngine;
+
 
 // --------------------------------------------------
 // Configuration and application state
@@ -35,9 +38,11 @@ CharacterRenderer renderer(tft);
 
 constexpr uint32_t BOOP_DURATION_MS = 1000;
 
-constexpr uint32_t LOOP_DELAY_MS = 20;
+constexpr uint32_t LOOP_DELAY_MS = 5;
 
 Mood activeMood = MoodModel::defaultMood();
+
+AnimationFrame displayedFrame{};
 
 bool wasTouched = false;
 
@@ -52,27 +57,19 @@ uint32_t boopStartedAt = 0;
 
 void initializeHardware() {
 
+    Serial.setRxBufferSize(
+        Hardware::SERIAL_RX_BUFFER_SIZE
+    );
+
     Serial.begin(Hardware::SERIAL_BAUD);
 
-    pinMode(
-        Hardware::TFT_CS,
-        OUTPUT
-    );
+    pinMode(Hardware::TFT_CS, OUTPUT);
 
-    pinMode(
-        Hardware::TOUCH_CS,
-        OUTPUT
-    );
+    pinMode(Hardware::TOUCH_CS, OUTPUT);
 
-    digitalWrite(
-        Hardware::TFT_CS,
-        HIGH
-    );
+    digitalWrite(Hardware::TFT_CS, HIGH);
 
-    digitalWrite(
-        Hardware::TOUCH_CS,
-        HIGH
-    );
+    digitalWrite(Hardware::TOUCH_CS, HIGH);
 
     SPI.begin(
         Hardware::SPI_SCK,
@@ -106,19 +103,19 @@ const Mood& getActiveMood() {
 }
 
 
-void renderCurrentMood() {
+void showActiveMood() {
 
-    if (booping) {
+    displayedFrame = AnimationFrame{};
 
-        Mood reaction =
-            MoodModel::boopMood(activeMood);
+    renderer.render(
+        activeMood,
+        displayedFrame
+    );
 
-        renderer.render(reaction);
-
-    } else {
-
-        renderer.render(activeMood);
-    }
+    animationEngine.reset(
+        activeMood.animation,
+        millis()
+    );
 }
 
 
@@ -126,11 +123,35 @@ void applyMood(const Mood& mood) {
 
     activeMood = mood;
 
-    // If a temporary reaction is active display the new base mood when it expires
+    // Allow temporary reactions to finish.
     if (!booping) {
 
-        renderCurrentMood();
+        showActiveMood();
     }
+}
+
+
+// --------------------------------------------------
+// Animation management
+// --------------------------------------------------
+
+void updateAnimation() {
+
+    // Normal animations are suspended during boops.
+    if (booping) {
+        return;
+    }
+
+    AnimationFrame nextFrame =
+        animationEngine.tick(millis());
+
+    renderer.renderAnimation(
+        activeMood,
+        displayedFrame,
+        nextFrame
+    );
+
+    displayedFrame = nextFrame;
 }
 
 
@@ -142,7 +163,14 @@ void startBoop() {
 
     booping = true;
 
-    renderCurrentMood();
+    Mood reaction =
+        MoodModel::boopMood(activeMood);
+
+    // Display a fixed temporary reaction.
+    renderer.render(
+        reaction,
+        AnimationFrame{}
+    );
 
     boopStartedAt = millis();
 }
@@ -176,7 +204,7 @@ void updateInteraction() {
 
         booping = false;
 
-        renderCurrentMood();
+        showActiveMood();
     }
 }
 
@@ -203,7 +231,7 @@ void setup() {
 
     initializeHardware();
 
-    renderCurrentMood();
+    showActiveMood();
 
     SerialProtocol::emitReady();
 }
@@ -216,6 +244,8 @@ void loop() {
     updateTouch();
 
     updateInteraction();
+
+    updateAnimation();
 
     delay(LOOP_DELAY_MS);
 }
