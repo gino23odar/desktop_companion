@@ -440,7 +440,7 @@ void writeJson(
     destination["id"] = mood.id;
 
     // Ensure the JSON document owns the temporary color
-    destination["background"] = String(color);
+    destination["background"] = static_cast<char*>(color);
 
     destination["eyes"] =
         EYE_NAMES[
