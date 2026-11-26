@@ -321,9 +321,8 @@ Disconnect and reconnect USB power.
 
 Expected:
 
-The default idle mood is restored.
-
-Persistence is not implemented yet.
+The previously selected mood is restored,
+including its animation configuration.
 
 ### Test 30 - Mixed interaction stability
 
@@ -452,3 +451,99 @@ Expected:
 
 No unexpected resets, freezes or corrupted
 application state.
+
+
+## Persistent storage regression tests
+
+### Test 44 - Native storage tests
+
+Run the mood storage test binary.
+
+Expected: All thirteen tests pass.
+
+### Test 45 - First startup
+
+Start the device with an empty storage record
+namespace.
+
+Expected:
+
+- Default mood is displayed.
+- Ready message is emitted.
+- Storage status is empty.
+
+### Test 46 - Persistent mood
+
+Send a valid custom mood and wait for its
+acknowledgment.
+
+Disconnect and reconnect USB power.
+
+Expected:
+
+The custom mood is restored.
+
+### Test 47 - Animation persistence
+
+Configure non-default animation settings.
+
+Power cycle the device.
+
+Expected:
+
+All animation settings remain unchanged.
+
+### Test 48 - Invalid updates
+
+Send an invalid mood definition.
+
+Expected:
+
+The update is rejected.
+
+The last accepted mood is restored after
+a subsequent power cycle.
+
+### Test 49 - Boop persistence isolation
+
+Select a custom mood.
+
+Trigger a boop and disconnect USB during
+the temporary reaction.
+
+Expected:
+
+The original custom mood is restored.
+
+### Test 50 - Reset mood
+
+Send reset_mood.
+
+Power cycle the device.
+
+Expected:
+
+The default mood remains selected.
+
+### Test 51 - Legacy mood support
+
+Send a mood without animation settings.
+
+Power cycle the device.
+
+Expected:
+
+The mood is restored with default animation
+settings.
+
+### Test 52 - Stability
+
+Run the device for ten minutes while
+alternating mood updates, physical touches,
+remote boops and USB commands.
+
+Expected:
+
+- No unexpected resets.
+- No corrupted graphics.
+- No persistent communication failures.
