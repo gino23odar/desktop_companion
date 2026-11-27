@@ -11,7 +11,7 @@ namespace SerialProtocol {
 
     constexpr char DEVICE_NAME[] = "svinka";
 
-    constexpr char FIRMWARE_VERSION[] = "0.5.0";
+    constexpr char FIRMWARE_VERSION[] = "0.5.1";
 
 
     using BoopHandler = void (*)();

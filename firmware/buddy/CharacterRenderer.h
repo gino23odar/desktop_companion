@@ -56,9 +56,12 @@ private:
     void drawSnout(uint16_t color);
 
     void drawAccessory(
+        Adafruit_GFX& target,
         Accessory accessory,
         uint16_t ink,
-        int8_t offset
+        int8_t offset,
+        int16_t originX = 0,
+        int16_t originY = 0
     );
 
     void drawCaption(
