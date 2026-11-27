@@ -547,3 +547,59 @@ Expected:
 - No unexpected resets.
 - No corrupted graphics.
 - No persistent communication failures.
+
+## Desktop companion regression tests
+
+### Test 53 - Python unit tests
+
+Execute the companion test suite.
+
+Expected: All 25 tests pass.
+
+### Test 54 - Device discovery
+
+Connect the desk buddy through USB.
+
+Execute ports and hello.
+
+Expected: The correct device is identified.
+
+### Test 55 - Mood updates
+
+Apply both supplied JSON mood files.
+
+Expected: Each mood is displayed and persisted.
+
+### Test 56 - Device events
+
+Run watch mode and physically touch the screen.
+
+Expected: Structured touch events are received.
+
+### Test 57 - Reconnection
+
+Disconnect and reconnect the device.
+
+Expected: Watch mode automatically reconnects.
+
+### Test 58 - Invalid commands
+
+Send an invalid mood.
+
+Expected: The firmware error is reported and
+the previous mood remains unchanged.
+
+### Test 59 - Cross-platform compatibility
+
+Verify Windows and Linux CI.
+
+Perform physical USB testing on Windows.
+
+### Test 60 - Stability
+
+Run watch mode for ten minutes.
+
+Periodically tap the touchscreen.
+
+Expected: No unexpected crashes or persistent
+communication failures.
