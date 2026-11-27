@@ -1,0 +1,14 @@
+{
+  "id": "sleepy",
+  "background": "#24243D",
+  "eyes": "sleepy",
+  "mouth": "none",
+  "blush": false,
+  "accessory": "zzz",
+  "message": "Buenas noches",
+  "animation": {
+    "blink_ms": 0,
+    "ear_wiggle": false,
+    "accessory_motion": true
+  }
+}

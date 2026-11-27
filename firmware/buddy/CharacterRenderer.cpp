@@ -1,5 +1,6 @@
 
 #include "CharacterRenderer.h"
+#include <Adafruit_GFX.h>
 
 
 CharacterRenderer::CharacterRenderer(
@@ -88,6 +89,7 @@ void CharacterRenderer::render(
     drawMouth(mood.mouth, ink);
 
     drawAccessory(
+        display,
         mood.accessory,
         ink,
         frame.accessoryOffset
@@ -98,6 +100,7 @@ void CharacterRenderer::render(
         ink
     );
 }
+
 
 
 void CharacterRenderer::renderAnimation(
@@ -117,29 +120,77 @@ void CharacterRenderer::renderAnimation(
 
 
     // ----------------------------------------------
-    // Update ears only when their position changes
+    // Buffered ear rendering
     // ----------------------------------------------
 
     if (previous.earOffset != current.earOffset) {
 
-        display.fillRect(
-            60, 45,
-            201, 46,
-            background
+        constexpr int16_t EAR_WIDTH = 61;
+        constexpr int16_t EAR_HEIGHT = 46;
+
+        static GFXcanvas16 earCanvas(
+            EAR_WIDTH,
+            EAR_HEIGHT
         );
 
-        drawEars(
-            nose,
-            current.earOffset
-        );
+        if (earCanvas.getBuffer() != nullptr) {
+
+            // Left ear
+            earCanvas.fillScreen(background);
+
+            earCanvas.fillTriangle(
+                0, 45,
+                30 + current.earOffset, 0,
+                60, 45,
+                nose
+            );
+
+            display.drawRGBBitmap(
+                60, 45,
+                earCanvas.getBuffer(),
+                EAR_WIDTH,
+                EAR_HEIGHT
+            );
+
+            // Reuse the same buffer for the right ear
+            earCanvas.fillScreen(background);
+
+            earCanvas.fillTriangle(
+                0, 45,
+                30 - current.earOffset, 0,
+                60, 45,
+                nose
+            );
+
+            display.drawRGBBitmap(
+                200, 45,
+                earCanvas.getBuffer(),
+                EAR_WIDTH,
+                EAR_HEIGHT
+            );
+
+        } else {
+
+            // Fallback if allocation fails
+            display.fillRect(
+                60, 45,
+                201, 46,
+                background
+            );
+
+            drawEars(
+                nose,
+                current.earOffset
+            );
+        }
     }
 
 
     // ----------------------------------------------
-    // Update eyes only when their state changes
+    // Existing eye rendering
     // ----------------------------------------------
 
-    bool canBlink =
+    const bool canBlink =
         mood.eyes == EyeStyle::Open ||
         mood.eyes == EyeStyle::Excited ||
         mood.eyes == EyeStyle::Glasses;
@@ -164,7 +215,7 @@ void CharacterRenderer::renderAnimation(
 
 
     // ----------------------------------------------
-    // Update moving accessories
+    // Buffered accessory rendering
     // ----------------------------------------------
 
     if (
@@ -173,19 +224,59 @@ void CharacterRenderer::renderAnimation(
             current.accessoryOffset
     ) {
 
-        display.fillRect(
-            261, 16,
-            59, 70,
-            background
+        constexpr int16_t ACCESSORY_X = 262;
+        constexpr int16_t ACCESSORY_Y = 20;
+
+        constexpr int16_t ACCESSORY_WIDTH = 38;
+        constexpr int16_t ACCESSORY_HEIGHT = 47;
+
+        static GFXcanvas16 accessoryCanvas(
+            ACCESSORY_WIDTH,
+            ACCESSORY_HEIGHT
         );
 
-        drawAccessory(
-            mood.accessory,
-            ink,
-            current.accessoryOffset
-        );
+        if (accessoryCanvas.getBuffer() != nullptr) {
+
+            // Prepare the complete frame in RAM
+            accessoryCanvas.fillScreen(background);
+
+            drawAccessory(
+                accessoryCanvas,
+                mood.accessory,
+                ink,
+                current.accessoryOffset,
+                ACCESSORY_X,
+                ACCESSORY_Y
+            );
+
+            // Transfer the finished frame
+            display.drawRGBBitmap(
+                ACCESSORY_X,
+                ACCESSORY_Y,
+                accessoryCanvas.getBuffer(),
+                ACCESSORY_WIDTH,
+                ACCESSORY_HEIGHT
+            );
+
+        } else {
+
+            // Fallback if allocation fails
+            display.fillRect(
+                261, 16,
+                59, 70,
+                background
+            );
+
+            drawAccessory(
+                display,
+                mood.accessory,
+                ink,
+                current.accessoryOffset
+            );
+        }
     }
 }
+
 
 
 
@@ -473,13 +564,18 @@ void CharacterRenderer::drawMouth(
 // --------------------------------------------------
 
 
+
 void CharacterRenderer::drawAccessory(
+    Adafruit_GFX& target,
     Accessory accessory,
     uint16_t ink,
-    int8_t offset
+    int8_t offset,
+    int16_t originX,
+    int16_t originY
 ) {
 
-    const int16_t dy = offset;
+    const int16_t dx = -originX;
+    const int16_t dy = offset - originY;
 
     switch (accessory) {
 
@@ -489,23 +585,27 @@ void CharacterRenderer::drawAccessory(
 
         case Accessory::Heart: {
 
-            uint16_t color =
+            const uint16_t color =
                 display.color565(223, 66, 107);
 
-            display.fillCircle(
-                272, 42 + dy,
-                9, color
+            target.fillCircle(
+                272 + dx,
+                42 + dy,
+                9,
+                color
             );
 
-            display.fillCircle(
-                288, 42 + dy,
-                9, color
+            target.fillCircle(
+                288 + dx,
+                42 + dy,
+                9,
+                color
             );
 
-            display.fillTriangle(
-                263, 45 + dy,
-                297, 45 + dy,
-                280, 64 + dy,
+            target.fillTriangle(
+                263 + dx, 45 + dy,
+                297 + dx, 45 + dy,
+                280 + dx, 64 + dy,
                 color
             );
 
@@ -514,27 +614,27 @@ void CharacterRenderer::drawAccessory(
 
         case Accessory::Star: {
 
-            uint16_t color =
+            const uint16_t color =
                 display.color565(231, 182, 58);
 
-            display.fillTriangle(
-                280, 29 + dy,
-                268, 65 + dy,
-                297, 43 + dy,
+            target.fillTriangle(
+                280 + dx, 29 + dy,
+                268 + dx, 65 + dy,
+                297 + dx, 43 + dy,
                 color
             );
 
-            display.fillTriangle(
-                280, 29 + dy,
-                292, 65 + dy,
-                263, 43 + dy,
+            target.fillTriangle(
+                280 + dx, 29 + dy,
+                292 + dx, 65 + dy,
+                263 + dx, 43 + dy,
                 color
             );
 
-            display.fillTriangle(
-                263, 43 + dy,
-                297, 43 + dy,
-                280, 57 + dy,
+            target.fillTriangle(
+                263 + dx, 43 + dy,
+                297 + dx, 43 + dy,
+                280 + dx, 57 + dy,
                 color
             );
 
@@ -543,20 +643,20 @@ void CharacterRenderer::drawAccessory(
 
         case Accessory::Zzz:
 
-            display.setFont(nullptr);
+            target.setFont(nullptr);
 
-            display.setTextSize(2);
+            target.setTextSize(2);
 
-            display.setTextColor(ink);
+            target.setTextColor(ink);
 
-            display.setTextWrap(false);
+            target.setTextWrap(false);
 
-            display.setCursor(
-                263,
+            target.setCursor(
+                263 + dx,
                 40 + dy
             );
 
-            display.print("Zzz");
+            target.print("Zzz");
 
             break;
     }

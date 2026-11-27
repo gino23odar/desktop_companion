@@ -114,3 +114,19 @@ Custom keyframes, downloadable graphics and
 buffered sprite rendering are not implemented.
 
 Display operations remain synchronous.
+
+## Buffered rendering
+
+Firmware version 0.5.1 introduces reusable RGB565
+canvas buffers for ear and accessory animations.
+
+Animated regions are composed in RAM before being
+transferred to the physical display.
+
+This minimizes visible intermediate drawing stages
+and reduces the display update area.
+
+Eye rendering remains unchanged.
+
+If buffer allocation fails, the renderer falls
+back to direct drawing.
