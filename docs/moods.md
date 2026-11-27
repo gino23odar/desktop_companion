@@ -135,13 +135,19 @@ but rendered after the reaction finishes.
 
 ## Persistence
 
-The active mood is currently stored in RAM.
+Starting with firmware version 0.5.0,
+accepted moods are saved to nonvolatile storage.
 
-Power cycling the device restores the default
-idle mood.
+The selected mood and its animation settings
+are restored when the device restarts.
 
-Persistent storage will be introduced in a
-subsequent release.
+Temporary reactions and animation frames
+are not persisted.
+
+The default mood is used when no valid
+saved record is available.
+
+See [Persistent storage](storage.md).
 
 ## Limitations
 

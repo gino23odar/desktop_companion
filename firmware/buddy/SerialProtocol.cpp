@@ -364,9 +364,44 @@ namespace {
                 return;
             }
 
-            handlers.onSetMood(candidate);
+            if (!handlers.onSetMood(candidate)) {
+
+                sendError(
+                    "storage_error",
+                    requestId
+                );
+
+                return;
+            }
 
             sendAck("set_mood", requestId);
+
+        } else if (type == "reset_mood") {
+
+            if (handlers.onSetMood == nullptr) {
+
+                sendError(
+                    "handler_unavailable",
+                    requestId
+                );
+
+                return;
+            }
+
+            const Mood defaultMood =
+                MoodModel::defaultMood();
+
+            if (!handlers.onSetMood(defaultMood)) {
+
+                sendError(
+                    "storage_error",
+                    requestId
+                );
+
+                return;
+            }
+
+            sendAck("reset_mood", requestId);
 
         } else if (type == "get_mood") {
 
@@ -514,6 +549,21 @@ void emitBoopEvent() {
     response["type"] = "event";
     response["event"] = "boop";
     response["source"] = "touch";
+
+    sendResponse(response);
+}
+
+void emitStorageStatus(
+    const char* status
+) {
+
+    JsonDocument response;
+
+    response["type"] = "event";
+
+    response["event"] = "storage";
+
+    response["status"] = status;
 
     sendResponse(response);
 }

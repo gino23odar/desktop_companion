@@ -241,3 +241,56 @@ Example:
 The protocol version remains 1.
 
 See animations.md for the supported settings.
+
+
+## Persistent mood behavior
+
+Starting with firmware version 0.5.0,
+set_mood persists a valid mood before
+activating it.
+
+An acknowledgment indicates that the mood
+was successfully saved or was identical
+to an already saved record.
+
+If persistence fails, the existing active
+mood remains unchanged.
+
+## reset_mood
+
+Restores and persists the default mood.
+
+Request:
+
+    {"type":"reset_mood","request_id":1}
+
+Response:
+
+    {"type":"ack","command":"reset_mood","request_id":1}
+
+If a temporary boop reaction is active,
+the default mood appears when it expires.
+
+## Storage errors
+
+    {"type":"error","code":"storage_error","request_id":1}
+
+The requested mood could not be persisted.
+
+## Storage event
+
+Emitted after the startup ready message.
+
+    {"type":"event","event":"storage","status":"restored"}
+
+Possible status values:
+
+- restored
+- empty
+- invalid
+- unsupported_version
+- unavailable
+
+See storage.md for additional details.
+
+The USB protocol version remains 1.

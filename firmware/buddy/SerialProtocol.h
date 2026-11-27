@@ -11,13 +11,13 @@ namespace SerialProtocol {
 
     constexpr char DEVICE_NAME[] = "svinka";
 
-    constexpr char FIRMWARE_VERSION[] = "0.4.0";
+    constexpr char FIRMWARE_VERSION[] = "0.5.0";
 
 
     using BoopHandler = void (*)();
 
     using SetMoodHandler =
-        void (*)(const Mood& mood);
+        bool (*)(const Mood& mood);
 
     using GetMoodHandler =
         const Mood& (*)();
@@ -38,5 +38,8 @@ namespace SerialProtocol {
     void emitReady();
 
     void emitBoopEvent();
-}
 
+    void emitStorageStatus(
+        const char* status
+    );
+}

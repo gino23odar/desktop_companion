@@ -11,6 +11,8 @@
 #include "Mood.h"
 #include "CharacterRenderer.h"
 #include "AnimationEngine.h"
+#include "MoodStorage.h"
+#include "PreferencesBackend.h"
 
 
 // --------------------------------------------------
@@ -30,6 +32,10 @@ XPT2046_Touchscreen touch(
 CharacterRenderer renderer(tft);
 
 AnimationEngine animationEngine;
+
+PreferencesBackend storageBackend;
+
+MoodStorage moodStorage(storageBackend);
 
 
 // --------------------------------------------------
@@ -119,16 +125,26 @@ void showActiveMood() {
 }
 
 
-void applyMood(const Mood& mood) {
+
+bool applyMood(const Mood& mood) {
+
+    // Persist before modifying application state
+    if (!moodStorage.save(mood)) {
+
+        return false;
+    }
 
     activeMood = mood;
 
-    // Allow temporary reactions to finish.
+    // Allow temporary reactions to finish
     if (!booping) {
 
         showActiveMood();
     }
+
+    return true;
 }
+
 
 
 // --------------------------------------------------
@@ -227,14 +243,32 @@ const SerialProtocol::Handlers handlers = {
 // Arduino lifecycle
 // --------------------------------------------------
 
+
 void setup() {
 
     initializeHardware();
 
+    // Open nonvolatile storage
+    storageBackend.begin();
+
+    // Restore the saved mood or use the default
+    const auto restoreResult =
+        moodStorage.restore(activeMood);
+
+    // Render the restored appearance
     showActiveMood();
 
+    // Preserve the existing startup handshake
     SerialProtocol::emitReady();
+
+    // Report the storage restoration outcome
+    SerialProtocol::emitStorageStatus(
+        MoodStorage::statusName(
+            restoreResult
+        )
+    );
 }
+
 
 
 void loop() {
