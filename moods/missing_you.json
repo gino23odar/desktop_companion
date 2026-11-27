@@ -1,0 +1,14 @@
+{
+  "id": "missing_you",
+  "background": "#FFD1DE",
+  "eyes": "happy",
+  "mouth": "smile",
+  "blush": true,
+  "accessory": "heart",
+  "message": "Te extrano!",
+  "animation": {
+    "blink_ms": 4500,
+    "ear_wiggle": true,
+    "accessory_motion": true
+  }
+}

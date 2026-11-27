@@ -1,0 +1,14 @@
+{
+  "id": "custom_mood",
+  "background": "#DCD5F3",
+  "eyes": "excited",
+  "mouth": "open",
+  "blush": true,
+  "accessory": "star",
+  "message": "Why so svinky?",
+  "animation": {
+    "blink_ms": 2000,
+    "ear_wiggle": true,
+    "accessory_motion": true
+  }
+}
