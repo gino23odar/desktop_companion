@@ -1,4 +1,4 @@
-"""Command-line interface. Run from the repository root."""
+"""Command-line interface. Run from the repository root"""
 import argparse
 import json
 import logging
@@ -8,6 +8,8 @@ import sys
 from .connection import connect, watch
 from .discovery import list_ports
 from .protocol import DeviceError, LinkError
+from .remote import RemoteSettings
+from .sync import run_sync
 
 
 def output(message):
@@ -15,7 +17,7 @@ def output(message):
 
 
 def event_output(message):
-    # Events and diagnostic logs stay separate from command output.
+    # Events and diagnostic logs stay separate from command output
     print(json.dumps(message, ensure_ascii=True), file=sys.stderr, flush=True)
 
 
@@ -26,7 +28,7 @@ def build_parser():
     selection.add_argument("--usb-serial", help="Select a CP210x bridge by USB serial number")
     parser.add_argument("--verbose", action="store_true")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("ports", "hello", "ping", "info", "boop", "get-mood", "reset-mood", "watch"):
+    for name in ("ports", "hello", "ping", "info", "boop", "get-mood", "reset-mood", "watch", "sync"):
         commands.add_parser(name)
     commands.add_parser("set-mood").add_argument("file", type=Path)
     return parser
@@ -47,6 +49,9 @@ def main(argv=None):
             return 0
         options = dict(explicit=args.port, usb_serial=args.usb_serial,
                        on_event=event_output)
+        if args.command == "sync":
+            run_sync(RemoteSettings.from_env(), **options)
+            return 0
         if args.command == "watch":
             watch(**options)
             return 0
