@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {StudioApi} from '../../studio/api.mjs';
+import {newMood} from '../../studio/model.mjs';
+const token='a'.repeat(43),m=newMood('sleepy');
+const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
+test('same origin, explicit bearer, no cache or redirects',async()=>{const api=new StudioApi(token,async(url,opts)=>{assert.equal(url,'/api/v1/moods');assert.equal(opts.headers.Authorization,`Bearer ${token}`);assert.equal(opts.redirect,'error');assert.equal(opts.cache,'no-store');assert.equal(opts.credentials,'omit');return json([m]);});assert.deepEqual(await api.catalog(),[m]);});
+test('create versus replace and explicit publication',async()=>{const calls=[];const api=new StudioApi(token,async(url,o)=>{calls.push([url,o.method,JSON.parse(o.body)]);return json(url.endsWith('/active')?{revision:2,mood:m,published_at:'2026-11-28T00:00:00Z'}:m);});await api.save(m,false);await api.save(m,true);await api.publish(m.id);assert.deepEqual(calls,[['/api/v1/moods','POST',m],['/api/v1/moods/sleepy','PUT',m],['/api/v1/active','PUT',{mood_id:'sleepy'}]]);});
+test('authorization and conflict errors are safe',async()=>{for(const status of [401,403,404,409,422,503]){const api=new StudioApi(token,async()=>json({detail:token},status));await assert.rejects(api.catalog(),e=>e.status===status&&!e.message.includes(token));}});
+test('rejects malformed response and handles network failure',async()=>{await assert.rejects(new StudioApi(token,async()=>json({bad:1})).catalog());await assert.rejects(new StudioApi(token,async()=>{throw Error(token);}).catalog(),e=>e.status===0&&!e.message.includes(token));});
+test('delete handles empty response',async()=>{const api=new StudioApi(token,async(url,o)=>{assert.equal(o.method,'DELETE');assert.equal(url,'/api/v1/moods/sleepy');return new Response(null,{status:204});});assert.equal(await api.remove('sleepy'),null);});
+test('rejects malformed credentials before request',()=>{for(const t of ['', 'x'.repeat(31),token+'\n','a b'.repeat(20)])assert.throws(()=>new StudioApi(t));});
