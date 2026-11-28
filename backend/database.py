@@ -1,4 +1,4 @@
-"""SQLite catalog and transactional publication of immutable snapshots"""
+"""SQLite catalog and transactional publication of immutable snapshots."""
 import json
 import sqlite3
 from contextlib import contextmanager
@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .models import ActiveMood, Mood, default_mood
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class NotFound(Exception):
@@ -55,6 +55,10 @@ class Database:
                 # Fail rather than silently reseed an inconsistent database.
                 self._read_active(conn)
                 return
+            if version == 1:
+                self._migrate_artwork(conn)
+                self._read_active(conn)
+                return
             if version != 0:
                 raise RuntimeError(f"Unsupported database schema: {version}")
             conn.execute("""CREATE TABLE moods (
@@ -72,7 +76,13 @@ class Database:
             conn.execute("INSERT INTO moods VALUES (?, ?)", (mood.id, definition))
             conn.execute("INSERT INTO active_state VALUES (1, 1, ?, ?)",
                          (definition, utc_now()))
-            conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            self._migrate_artwork(conn)
+
+    @staticmethod
+    def _migrate_artwork(conn):
+        conn.execute("CREATE TABLE artworks (id TEXT PRIMARY KEY NOT NULL, pack TEXT NOT NULL)")
+        conn.execute("ALTER TABLE active_state ADD COLUMN artwork_id TEXT")
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     @staticmethod
     def _read_active(conn):
@@ -129,8 +139,67 @@ class Database:
         with self.connection(write=True) as conn:
             mood = self._get(conn, mood_id)
             active = self._read_active(conn)
-            if canonical(mood) == canonical(active.mood):
+            if canonical(mood) == canonical(active.mood) and self._artwork_id(conn) is None:
                 return active
-            conn.execute("UPDATE active_state SET revision = revision + 1, definition = ?, published_at = ? WHERE singleton = 1",
+            conn.execute("UPDATE active_state SET revision = revision + 1, definition = ?, published_at = ?, artwork_id = NULL WHERE singleton = 1",
                          (canonical(mood), utc_now()))
             return self._read_active(conn)
+
+    @staticmethod
+    def _artwork_id(conn):
+        return conn.execute("SELECT artwork_id FROM active_state WHERE singleton = 1").fetchone()[0]
+
+    @staticmethod
+    def _artwork(conn, artwork_id):
+        row = conn.execute("SELECT id, pack FROM artworks WHERE id = ?", (artwork_id,)).fetchone()
+        if row is None:
+            raise NotFound("Artwork not found")
+        return dict(row)
+
+    def list_artworks(self):
+        with self.connection() as conn:
+            return [row[0] for row in conn.execute("SELECT id FROM artworks ORDER BY id")]
+
+    def get_artwork(self, artwork_id):
+        with self.connection() as conn:
+            return self._artwork(conn, artwork_id)
+
+    def create_artwork(self, artwork):
+        with self.connection(write=True) as conn:
+            if conn.execute("SELECT 1 FROM artworks WHERE id = ?", (artwork['id'],)).fetchone():
+                raise Conflict("Artwork ID already exists; use a new ID for revisions")
+            if conn.execute("SELECT count(*) FROM artworks").fetchone()[0] >= 128:
+                raise Conflict("Artwork catalog full (128 packs)")
+            conn.execute("INSERT INTO artworks VALUES (?, ?)", (artwork['id'], artwork['pack']))
+        return artwork
+
+    def delete_artwork(self, artwork_id):
+        with self.connection(write=True) as conn:
+            self._artwork(conn, artwork_id)
+            if self._artwork_id(conn) == artwork_id:
+                raise Conflict("Cannot delete published artwork")
+            conn.execute("DELETE FROM artworks WHERE id = ?", (artwork_id,))
+
+    def _active_v2(self, conn):
+        # Single SELECT gives one consistent snapshot even with concurrent publishers.
+        row = conn.execute("""SELECT a.revision, a.definition, a.published_at,
+                             a.artwork_id, p.pack FROM active_state a
+                             LEFT JOIN artworks p ON p.id = a.artwork_id
+                             WHERE a.singleton = 1""").fetchone()
+        if row is None or (row['artwork_id'] is not None and row['pack'] is None):
+            raise RuntimeError("Invalid active artwork state")
+        return {'revision': row['revision'], 'mood': Mood.model_validate_json(row['definition']).model_dump(),
+                'published_at': row['published_at'], 'artwork': None if row['artwork_id'] is None
+                else {'id': row['artwork_id'], 'pack': row['pack']}}
+
+    def active_v2(self):
+        with self.connection() as conn:
+            return self._active_v2(conn)
+
+    def activate_artwork(self, artwork_id):
+        with self.connection(write=True) as conn:
+            self._artwork(conn, artwork_id)
+            if self._artwork_id(conn) != artwork_id:
+                conn.execute("UPDATE active_state SET revision = revision + 1, artwork_id = ?, published_at = ? WHERE singleton = 1",
+                             (artwork_id, utc_now()))
+            return self._active_v2(conn)

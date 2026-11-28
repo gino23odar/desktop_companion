@@ -1,4 +1,4 @@
-"""Local development API. Run with uvicorn backend.app:create_app --factory"""
+"""Local development API. Run with uvicorn backend.app:create_app --factory."""
 import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from .auth import make_auth
+from .artwork_api import install_artwork_routes
 from .config import Settings
 from .database import Conflict, Database, NotFound
 from .models import Activation, ActiveMood, Mood
@@ -26,11 +27,11 @@ def create_app(settings: Settings | None = None):
     @app.middleware("http")
     async def prevent_cache(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith("/api/v1/"):
+        if request.url.path.startswith(("/api/v1/", "/api/v2/")):
             response.headers["Cache-Control"] = "no-store"
         if request.url.path == "/studio" or request.url.path.startswith("/studio/"):
             response.headers["Cache-Control"] = "no-store"
-            # Windows MIME registry entries can differ; modules need JS MIME
+            # Windows MIME registry entries can differ; modules need JS MIME.
             if request.url.path.endswith(".mjs") and response.status_code == 200:
                 response.headers["Content-Type"] = "text/javascript; charset=utf-8"
             response.headers["Content-Security-Policy"] = (
@@ -90,6 +91,7 @@ def create_app(settings: Settings | None = None):
     def activate(selection: Activation):
         return db.activate(selection.mood_id)
 
+    install_artwork_routes(app, db, admin, reader)
     studio_path = Path(__file__).resolve().parent.parent / "studio"
     app.mount("/studio", StaticFiles(directory=studio_path, html=True), name="studio")
     return app
