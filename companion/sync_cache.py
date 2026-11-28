@@ -11,21 +11,28 @@ LOG = logging.getLogger(__name__)
 
 
 class MoodCache:
+    schema = 1
+    max_bytes = MAX_HTTP_BYTES
+    validator = staticmethod(validate_publication)
+
     def __init__(self, path, url):
         self.path = path
         self.url = url
 
+    def decode(self, data):
+        if (type(data) is not dict or set(data) != {"schema", "origin", "publication"}
+                or type(data["schema"]) is not int or data["schema"] != self.schema or data["origin"] != self.url):
+            raise ValueError("Unsupported cache or different API origin")
+        return self.validator(data["publication"])
+
     def load(self):
         try:
             with self.path.open("rb") as handle:
-                raw = handle.read(MAX_HTTP_BYTES + 1)
-            if len(raw) > MAX_HTTP_BYTES:
+                raw = handle.read(self.max_bytes + 1)
+            if len(raw) > self.max_bytes:
                 raise ValueError("Oversized cache")
             data = json.loads(raw)
-            if (type(data) is not dict or set(data) != {"schema", "origin", "publication"}
-                    or type(data["schema"]) is not int or data["schema"] != 1 or data["origin"] != self.url):
-                raise ValueError("Unsupported cache or different API origin")
-            return validate_publication(data["publication"])
+            return self.decode(data)
         except FileNotFoundError:
             return None
         except (OSError, ValueError, RecursionError):
@@ -33,7 +40,7 @@ class MoodCache:
             return None
 
     def save(self, publication):
-        data = {"schema": 1, "origin": self.url, "publication": validate_publication(publication)}
+        data = {"schema": self.schema, "origin": self.url, "publication": self.validator(publication)}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = None
         try:
@@ -50,3 +57,17 @@ class MoodCache:
                     os.unlink(temporary)
                 except OSError:
                     LOG.warning("Could not remove temporary cache file")
+
+
+from .artwork import validate_v2
+
+class ArtworkCache(MoodCache):
+    schema = 2
+    max_bytes = 66 * 1024
+    validator = staticmethod(validate_v2)
+
+    def decode(self, data):
+        if (type(data) is dict and set(data) == {"schema", "origin", "publication"}
+                and type(data["schema"]) is int and data["schema"] == 1 and data["origin"] == self.url):
+            return {**validate_publication(data["publication"]), 'artwork': None}
+        return super().decode(data)

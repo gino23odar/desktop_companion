@@ -4,8 +4,9 @@ import time
 
 from .connection import connect
 from .protocol import DeviceError, LinkError, ProtocolError
-from .remote import RemoteClient, RemoteError
-from .sync_cache import MoodCache
+from .remote import ArtworkRemote, RemoteClient, RemoteError
+from .sync_cache import ArtworkCache, MoodCache
+from .artwork import apply_artwork, decode_pack
 from .sync_models import normalize_mood
 
 LOG = logging.getLogger(__name__)
@@ -124,5 +125,34 @@ class Synchronizer:
             self.close()
 
 
+class ArtworkSynchronizer(Synchronizer):
+    def _reconcile(self):
+        if self.desired is None:
+            return
+        wanted = self.desired['mood']
+        changed = False
+        if self._read_mood() != wanted:
+            self.client.request('set_mood', mood=wanted)
+            if self._read_mood() != wanted:
+                raise ProtocolError('Device fallback mood readback differs')
+            changed = True
+        art = self.desired['artwork']
+        capability = (self.client.identity or {}).get('artwork')
+        if type(capability) is not int or capability != 1:
+            if art is not None:
+                LOG.warning('Device lacks artwork support; showing primitive fallback')
+            elif changed:
+                LOG.info('Applied and verified revision %s', self.desired['revision'])
+        else:
+            changed = apply_artwork(self.client, None if art is None else decode_pack(art['pack'])) or changed
+            if changed:
+                LOG.info('Applied and verified revision %s', self.desired['revision'])
+            else:
+                LOG.debug('Device already matches revision %s', self.desired['revision'])
+        self.dirty = False
+        self.next_check = self.clock() + RECONCILE_INTERVAL
+        self.next_ping = self.clock() + HEARTBEAT
+
+
 def run_sync(settings, **options):
-    Synchronizer(RemoteClient(settings), MoodCache(settings.cache_path, settings.url), **options).run()
+    ArtworkSynchronizer(ArtworkRemote(settings), ArtworkCache(settings.cache_path, settings.url), **options).run()

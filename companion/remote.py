@@ -57,6 +57,10 @@ class RemoteSettings:
 
 
 class RemoteClient:
+    endpoint = "/api/v1/active"
+    max_bytes = MAX_HTTP_BYTES
+    validator = staticmethod(validate_publication)
+
     def __init__(self, settings, *, timeout=3.0, opener=None):
         self.url = validate_url(settings.url)
         self.token = settings.token
@@ -64,7 +68,7 @@ class RemoteClient:
         self.opener = opener if opener is not None else build_opener(ProxyHandler({}), NoRedirect())
 
     def fetch(self):
-        request = Request(self.url + "/api/v1/active", headers={
+        request = Request(self.url + self.endpoint, headers={
             "Authorization": "Bearer " + self.token,
             "Accept": "application/json", "Cache-Control": "no-cache",
         }, method="GET")
@@ -72,13 +76,21 @@ class RemoteClient:
             with self.opener.open(request, timeout=self.timeout) as response:
                 if response.status != 200 or response.headers.get_content_type() != "application/json":
                     raise RemoteError("Unexpected API response")
-                raw = response.read(MAX_HTTP_BYTES + 1)
-            if len(raw) > MAX_HTTP_BYTES:
+                raw = response.read(self.max_bytes + 1)
+            if len(raw) > self.max_bytes:
                 raise RemoteError("API response exceeds size limit")
-            return validate_publication(json.loads(raw))
+            return self.validator(json.loads(raw))
         except HTTPError as exc:
             exc.close()
             raise RemoteError(f"API HTTP {exc.code}") from None
         except (URLError, OSError, HTTPException, ValueError, RecursionError):
             # Do not log request URLs, body or credentials from exceptions.
             raise RemoteError("API connection or validation failed") from None
+
+
+from .artwork import validate_v2
+
+class ArtworkRemote(RemoteClient):
+    endpoint = "/api/v2/active"
+    max_bytes = 64 * 1024
+    validator = staticmethod(validate_v2)

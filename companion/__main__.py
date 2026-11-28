@@ -1,4 +1,4 @@
-"""Command-line interface. Run from the repository root"""
+"""Command-line interface. Run from the repository root."""
 import argparse
 import json
 import logging
@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 
 from .connection import connect, watch
+from .artwork import MAX_PACK_BYTES, apply_artwork, inspect_pack
 from .discovery import list_ports
 from .protocol import DeviceError, LinkError
 from .remote import RemoteSettings
@@ -17,7 +18,7 @@ def output(message):
 
 
 def event_output(message):
-    # Events and diagnostic logs stay separate from command output
+    # Events and diagnostic logs stay separate from command output.
     print(json.dumps(message, ensure_ascii=True), file=sys.stderr, flush=True)
 
 
@@ -28,9 +29,11 @@ def build_parser():
     selection.add_argument("--usb-serial", help="Select a CP210x bridge by USB serial number")
     parser.add_argument("--verbose", action="store_true")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("ports", "hello", "ping", "info", "boop", "get-mood", "reset-mood", "watch", "sync"):
+    for name in ("ports", "hello", "ping", "info", "boop", "get-mood", "reset-mood", "watch", "sync", "art-status", "art-clear"):
         commands.add_parser(name)
     commands.add_parser("set-mood").add_argument("file", type=Path)
+    commands.add_parser("art-load").add_argument("file", type=Path)
+    commands.add_parser("art-init").add_argument("--confirm-format", action="store_true", required=True)
     return parser
 
 
@@ -62,6 +65,16 @@ def main(argv=None):
             if not isinstance(mood, dict):
                 raise ValueError("Mood file must contain a JSON object, not a command envelope")
             payload["mood"] = mood
+        if args.command == "art-load":
+            with args.file.open("rb") as handle:
+                raw = handle.read(MAX_PACK_BYTES + 1)
+            inspect_pack(raw)
+            client = connect(**options)
+            apply_artwork(client, raw)
+            output(client.request("art_status"))
+            return 0
+        if args.command == "art-init":
+            payload["confirm"] = "FORMAT_ARTWORK_FS"
         client = connect(**options)
         command = {"info": "get_info"}.get(args.command, args.command.replace("-", "_"))
         reply = client.identity if command == "hello" else client.request(command, **payload)
