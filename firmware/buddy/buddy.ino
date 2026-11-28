@@ -13,6 +13,7 @@
 #include "AnimationEngine.h"
 #include "MoodStorage.h"
 #include "PreferencesBackend.h"
+#include "ArtworkPlayer.h"
 
 
 // --------------------------------------------------
@@ -110,6 +111,10 @@ const Mood& getActiveMood() {
 
 
 void showActiveMood() {
+    
+    if (ArtworkPlayer::show()) {
+        return;
+    }
 
     displayedFrame = AnimationFrame{};
 
@@ -124,6 +129,11 @@ void showActiveMood() {
     );
 }
 
+void redrawArtworkIfIdle() {
+    if (!booping) {
+        showActiveMood();
+    }
+}
 
 
 bool applyMood(const Mood& mood) {
@@ -158,6 +168,11 @@ void updateAnimation() {
         return;
     }
 
+    if (ArtworkPlayer::active()) {
+        ArtworkPlayer::tick();
+        return;
+    }
+
     AnimationFrame nextFrame =
         animationEngine.tick(millis());
 
@@ -179,14 +194,15 @@ void startBoop() {
 
     booping = true;
 
-    Mood reaction =
-        MoodModel::boopMood(activeMood);
+    Mood reaction = MoodModel::boopMood(activeMood);
 
     // Display a fixed temporary reaction.
-    renderer.render(
-        reaction,
-        AnimationFrame{}
-    );
+    if (!ArtworkPlayer::showBoop()) {
+        renderer.render(
+            reaction,
+            AnimationFrame{}
+        );
+    }
 
     boopStartedAt = millis();
 }
@@ -252,8 +268,9 @@ void setup() {
     storageBackend.begin();
 
     // Restore the saved mood or use the default
-    const auto restoreResult =
-        moodStorage.restore(activeMood);
+    const auto restoreResult = moodStorage.restore(activeMood);
+
+    ArtworkPlayer::begin(tft, redrawArtworkIfIdle);
 
     // Render the restored appearance
     showActiveMood();

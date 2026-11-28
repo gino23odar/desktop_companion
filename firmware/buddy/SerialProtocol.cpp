@@ -1,6 +1,7 @@
 
 #include "SerialProtocol.h"
 #include "HardwareConfig.h"
+#include "ArtworkPlayer.h"
 
 #include <ArduinoJson.h>
 #include <cstring>
@@ -84,6 +85,7 @@ namespace {
         response["device"] = DEVICE_NAME;
         response["protocol"] = PROTOCOL_VERSION;
         response["firmware"] = FIRMWARE_VERSION;
+        response["artwork"] = 1;
 
         sendResponse(response, requestId);
     }
@@ -289,21 +291,42 @@ namespace {
             requestId.value = id.as<uint32_t>();
         }
 
-        JsonVariantConst type =
-            request["type"];
+        
+        JsonVariantConst type = request["type"];
 
         if (!type.is<const char*>()) {
 
-            sendError(
-                "invalid_command",
+            sendError("invalid_command", requestId);
+
+            return;
+        }
+
+        // --------------------------------------------------
+        // Artwork command handling
+        // --------------------------------------------------
+
+        JsonDocument artResponse;
+
+        JsonObject artObject = artResponse.to<JsonObject>();
+
+        if (
+            ArtworkPlayer::handle(request.as<JsonObjectConst>(), artObject)
+        ) {
+
+            sendResponse(
+                artResponse,
                 requestId
             );
 
             return;
         }
 
-        
+        // --------------------------------------------------
+        // Existing command handling
+        // --------------------------------------------------
+
         if (type == "hello") {
+
 
             sendHello(requestId);
 
