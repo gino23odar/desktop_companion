@@ -740,3 +740,37 @@ Run synchronization for at least ten minutes.
 
 Expected: No unexpected crashes, persistent rendering
 artifacts or unrecoverable communication failures.
+
+## Studio regression tests
+
+### Test 78 - JavaScript model and API tests
+Run `node --test tests/studio/model.test.mjs tests/studio/api.test.mjs`.
+Expected: 15 passing tests.
+
+### Test 79 - Static hosting and backend regression
+Run `python -m unittest discover -s tests/backend -v`.
+Expected: 32 passing tests, including 4 Studio hosting/security tests.
+
+### Test 80 - Browser integration
+Install Playwright and Chromium per docs/studio.md; run
+`python -m unittest discover -s tests/studio -p test_browser.py -v`.
+Expected: the real browser workflow passes against a temporary database.
+
+### Test 81 - Studio authentication
+Open /studio/, reject a device token, connect with an admin token.
+Reload; Studio requires authentication again.
+
+### Test 82 - Draft isolation and publication
+Create or edit a mood, save, and verify the published snapshot is unchanged.
+Publish explicitly; revision and physical display update after sync.
+
+### Test 83 - Preview and validation
+Check supported appearance fields, animation timing, boop preview,
+ASCII and 24-character limits. Invalid or unsaved moods cannot publish.
+
+### Test 84 - Catalog management
+Duplicate a mood, save, delete; cannot delete the active mood.
+
+### Test 85 - Responsive UI and regression
+Check desktop and mobile viewport widths. Verify existing Swagger and sync
+continue working. Do not confuse publication with delivery confirmation.
