@@ -669,3 +669,74 @@ Expected:
 
 Valid backend moods conform to the existing
 firmware protocol requirements.
+
+## Remote synchronization regression tests
+
+### Test 68 - Automated synchronization tests
+
+Execute the companion and backend test suites.
+
+Expected: All 83 Python tests pass.
+
+### Test 69 - Automatic mood delivery
+
+Publish a mood using the backend API.
+
+Expected: The physical device displays the new mood
+without requiring a manual serial command.
+
+### Test 70 - Duplicate delivery prevention
+
+Publish an identical mood repeatedly.
+
+Expected: No unnecessary set_mood commands or
+full-screen redraws occur.
+
+### Test 71 - USB disconnection and recovery
+
+Disconnect the ESP32, publish additional moods,
+and reconnect the device.
+
+Expected: The latest publication is applied.
+
+### Test 72 - Backend interruption and recovery
+
+Stop and restart the backend while synchronization
+is active.
+
+Expected: The cached mood is retained and polling
+recovers automatically.
+
+### Test 73 - Offline startup
+
+Restart the companion with the backend offline.
+
+Expected: The last valid cached publication is used.
+
+### Test 74 - Device reset recovery
+
+Reset the ESP32 while synchronization is active.
+
+Expected: The intended published mood is retained
+or restored.
+
+### Test 75 - Physical interaction regression
+
+Trigger boop reactions during synchronization.
+
+Expected: Temporary interactions remain functional
+and do not modify the published base mood.
+
+### Test 76 - Authentication regression
+
+Configure an invalid device credential.
+
+Expected: Remote responses are rejected and the last
+valid state is retained.
+
+### Test 77 - Extended synchronization stability
+
+Run synchronization for at least ten minutes.
+
+Expected: No unexpected crashes, persistent rendering
+artifacts or unrecoverable communication failures.
