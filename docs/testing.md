@@ -603,3 +603,69 @@ Periodically tap the touchscreen.
 
 Expected: No unexpected crashes or persistent
 communication failures.
+
+## Backend regression tests
+
+### Test 61 - Automated backend tests
+
+Execute the backend test suite.
+
+Expected: All 27 tests pass.
+
+### Test 62 - Server initialization
+
+Start the backend with a new database.
+
+Expected:
+
+- Database tables are created.
+- Default idle mood is available.
+- Initial publication revision is 1.
+
+### Test 63 - Mood catalog management
+
+Create, retrieve, update and delete moods.
+
+Expected:
+
+All supported operations behave correctly.
+
+### Test 64 - Authentication
+
+Test administrative, device and invalid credentials.
+
+Expected:
+
+Only administrative credentials can modify
+the catalog or publish moods.
+
+### Test 65 - Mood publication
+
+Publish a mood, edit its catalog definition,
+and publish it again.
+
+Expected:
+
+Catalog editing does not modify the published
+snapshot until explicit activation.
+
+Duplicate publication does not increment
+the revision.
+
+### Test 66 - Backend persistence
+
+Stop and restart the server.
+
+Expected:
+
+The mood catalog, published snapshot and
+revision remain unchanged.
+
+### Test 67 - Firmware compatibility
+
+Validate mood definitions and serial payload size.
+
+Expected:
+
+Valid backend moods conform to the existing
+firmware protocol requirements.
