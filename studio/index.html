@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Svinka Studio</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header class="top"><div><p class="eyebrow">DESK BUDDY / MOOD WORKSHOP</p><h1>Svinka Studio<span>.</span></h1><p>Little expressions, sent with love.</p></div><span id="connection" class="pill">Disconnected</span></header>
+  <main>
+    <section class="panel auth" aria-labelledby="auth-heading">
+      <div><h2 id="auth-heading">Connect to your studio</h2><p>Use the administrative token from your backend. It stays in this tab's memory only.</p></div>
+      <form id="login" autocomplete="off"><label for="token">Admin token</label><div class="inline"><input id="token" type="password" required autocomplete="off" spellcheck="false" autocapitalize="none"><button type="submit">Connect</button></div></form>
+      <button id="logout" type="button" class="secondary" hidden>Disconnect</button>
+    </section>
+    <p id="status" role="status" aria-live="polite">Connect to load your mood catalog.</p>
+    <div id="workspace" hidden>
+      <div class="layout">
+        <aside class="panel library"><div class="section-head"><h2>Mood library</h2><button id="refresh" class="secondary" type="button">Refresh</button></div><div id="catalog" class="catalog" aria-label="Saved moods"></div><button id="new" class="secondary wide" type="button">+ New mood</button></aside>
+        <section class="panel editor"><div class="section-head"><h2>Design mood</h2><span class="pill" id="draft-state">Draft</span></div>
+          <div class="screen"><canvas id="preview" width="320" height="240" role="img" aria-label="Animated draft mood preview"></canvas></div>
+          <p class="screen-caption">320 × 240 · Firmware-style approximation</p>
+          <form id="editor-form" autocomplete="off">
+            <label for="mood-id">Mood ID</label><input id="mood-id" maxlength="24" required pattern="[a-z0-9_\-]{1,24}" spellcheck="false"><small>Lowercase letters, numbers, underscore and hyphen. Saved IDs cannot be renamed.</small>
+            <div class="fields"><div><label for="background">Background</label><input id="background" type="color" value="#FFD1DE"></div><div><label for="eyes">Eyes</label><select id="eyes"><option>open</option><option>happy</option><option>sleepy</option><option>excited</option><option>glasses</option></select></div><div><label for="mouth">Mouth</label><select id="mouth"><option>none</option><option>smile</option><option>neutral</option><option>open</option></select></div><div><label for="accessory">Accessory</label><select id="accessory"><option>none</option><option>heart</option><option>star</option><option>zzz</option></select></div></div>
+            <label class="check"><input id="blush" type="checkbox"> Show blush</label>
+            <div class="section-head"><label for="message">Message</label><small id="message-count">0 / 24</small></div><input id="message" maxlength="24" spellcheck="false"><small>Printable ASCII only (no accents or emoji in firmware v1).</small>
+            <details open><summary>Animation settings</summary><label for="blink">Blink interval (ms)</label><input id="blink" type="number" min="0" max="15000" step="1" required><small>0 disables blinking; otherwise 1000–15000.</small><label class="check"><input id="ears" type="checkbox"> Ear wiggle</label><label class="check"><input id="motion" type="checkbox"> Floating accessory</label><label class="check"><input id="animate" type="checkbox" checked> Animate preview</label><button id="boop" type="button" class="secondary">Preview boop</button></details>
+            <div id="validation" role="alert" class="error"></div>
+            <div class="actions"><button id="save" type="submit">Save mood</button><button id="publish" type="button" class="publish">Publish saved mood</button><button id="duplicate" class="secondary" type="button">Duplicate</button><button id="delete" class="danger" type="button">Delete</button></div>
+          </form>
+        </section>
+        <aside class="panel published"><div class="section-head"><h2>Published</h2><span id="revision" class="pill">—</span></div><div class="screen"><canvas id="published-preview" width="320" height="240" role="img" aria-label="Published mood preview"></canvas></div><h3 id="published-id">—</h3><p id="published-message"></p><small id="published-time"></small><p class="note">Published means stored on the server, not confirmed delivered. The companion applies it on its next successful sync.</p></aside>
+      </div>
+    </div>
+  </main>
+  <footer>Svinka Studio · PR-09 · Firmware protocol v1</footer>
+</body>
+</html>

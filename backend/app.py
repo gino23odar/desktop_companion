@@ -1,6 +1,8 @@
 """Local development API. Run with uvicorn backend.app:create_app --factory"""
 import sqlite3
 from contextlib import asynccontextmanager
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from .auth import make_auth
@@ -26,6 +28,19 @@ def create_app(settings: Settings | None = None):
         response = await call_next(request)
         if request.url.path.startswith("/api/v1/"):
             response.headers["Cache-Control"] = "no-store"
+        if request.url.path == "/studio" or request.url.path.startswith("/studio/"):
+            response.headers["Cache-Control"] = "no-store"
+            # Windows MIME registry entries can differ; modules need JS MIME
+            if request.url.path.endswith(".mjs") and response.status_code == 200:
+                response.headers["Content-Type"] = "text/javascript; charset=utf-8"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; script-src 'self'; style-src 'self'; "
+                "connect-src 'self'; img-src 'self'; base-uri 'none'; "
+                "form-action 'none'; frame-ancestors 'none'"
+            )
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Referrer-Policy"] = "no-referrer"
+            response.headers["X-Frame-Options"] = "DENY"
         return response
 
     @app.exception_handler(NotFound)
@@ -75,4 +90,6 @@ def create_app(settings: Settings | None = None):
     def activate(selection: Activation):
         return db.activate(selection.mood_id)
 
+    studio_path = Path(__file__).resolve().parent.parent / "studio"
+    app.mount("/studio", StaticFiles(directory=studio_path, html=True), name="studio")
     return app
